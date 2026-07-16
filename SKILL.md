@@ -16,7 +16,7 @@ description: >-
   "one tenant is starving the others". Always reach for a catalog pattern instead
   of hand-rolling a Workflow shape.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   source: https://docs.temporal.io/design-patterns.md
 ---
 
@@ -53,10 +53,12 @@ If fetching isn't available in the current environment, don't guess at
 implementation detail — name the pattern, give the canonical URL for the user to
 open, and keep any specifics conservative and clearly flagged as unverified.
 
-> The catalog is a snapshot as of skill authoring (34 patterns, 10 domains). The
+> The catalog is a snapshot as of skill authoring (35 patterns, 10 domains). The
 > live index is the real source of truth. If a pattern the user needs isn't
 > listed, or you suspect the catalog has grown, re-fetch the index before
-> concluding a pattern doesn't exist.
+> concluding a pattern doesn't exist. Note: **Event Accumulator**
+> (`event-accumulator`) has a live pattern page but is not currently listed in the
+> index `.md` — its page is the source of truth for it; verify with a direct fetch.
 
 ---
 
@@ -113,7 +115,8 @@ open, and keep any specifics conservative and clearly flagged as unverified.
 ## Problem → pattern routing map
 
 Match the user's symptom (left) to the pattern (right), even when they never say
-"pattern." Then fetch the page.
+"pattern." Then fetch the page. To route top-down by what the user is *building*
+(industry / use case) rather than by symptom, use **Use-case → pattern stack** below.
 
 | If the user is trying to… | Pattern(s) | slug |
 |---|---|---|
@@ -122,6 +125,7 @@ Match the user's symptom (left) to the pattern (right), even when they never say
 | Race several activities, take the first, cancel the rest (hedging) | Pick First | `pick-first` |
 | Start a workflow only if it isn't running, else just signal it | Signal with Start | `signal-with-start` |
 | Do a synchronous request/response with validation and a returned result | Request-Response via Updates | `request-response-via-updates` |
+| Accumulate a burst of incoming events/signals and process them as one deduped batch | Event Accumulator | `event-accumulator` |
 | Model a long-lived business entity (account, cart, device, user) | Entity Workflow | `entity-workflow` |
 | Stop history from growing without bound in a long loop | Continue-As-New | `continue-as-new` |
 | Have a timer they can extend, shorten, or cancel from events | Updatable Timer | `updatable-timer` |
@@ -154,6 +158,50 @@ Match the user's symptom (left) to the pattern (right), even when they never say
 
 ---
 
+## Use-case → pattern stack
+
+Top-down routing: when the user frames the problem by what they're *building* (an
+industry or use case) rather than by a symptom, start here — each vertical names the
+stack of patterns that use case usually needs. Best for customer/prospect
+conversations (Mode 2) and enablement decks (Mode 3). Slugs only; names and
+descriptions are in the catalog. Then fetch each pattern's page as usual.
+
+A stack is a *starting menu*, not a mandate — most use cases need only a subset. Pick
+what the specific problem calls for (see *Guardrails* on not over-engineering).
+
+> Snapshot of Temporal's "Use Case → Pattern Mapping v2" (June 2026), reconciled to
+> canonical catalog slugs. Non-pattern techniques it references (e.g. idempotency)
+> are listed under *Cross-cutting techniques* below, not here.
+
+### AI workloads
+- **AI agents** — `entity-workflow`, `continue-as-new`, `request-response-via-updates`, `child-workflows`, `long-running-activity`, `pick-first`, `fast-slow-retries`
+- **AI internal agent platforms** — `signal-with-start`, `worker-specific-taskqueue`, `activity-dependency-injection`, `downstream-rate-limiting`, `fairness`, `priority-task-queues`, `delayed-retry`
+- **AI processing pipelines** — `parallel-execution`, `child-workflows`, `continue-as-new`, `downstream-rate-limiting`, `fast-slow-retries`, `sliding-window`, `mapreduce-tree`, `fixed-count-retries`, `delayed-retry`
+- **AI model training** — `child-workflows`, `parallel-execution`, `long-running-activity`, `downstream-rate-limiting`, `retry-metrics`, `fixed-count-retries`, `sliding-window`
+
+### Commerce & payments
+- **Order management & fulfillment** — `entity-workflow`, `saga-pattern`, `signal-with-start`, `updatable-timer`, `delayed-callback`, `early-return`, `event-accumulator`
+- **Payment processing & settlement** — `saga-pattern`, `non-retryable-errors`, `fixed-wall-time-retries`, `retry-metrics`, `early-return`, `delayed-retry` (plus idempotency — see *Cross-cutting techniques*)
+
+### Data & infrastructure
+- **Data pipelines & ETL** — `parallel-execution`, `child-workflows`, `continue-as-new`, `polling`, `fixed-wall-time-retries`, `batch-iterator`, `sliding-window`, `fanout-child-workflows`, `mapreduce-tree`, `delayed-retry`
+- **Infrastructure automation & CI/CD** — `saga-pattern`, `approval`, `delayed-start`, `polling`, `resumable-activity`, `fixed-count-retries`, `retry-metrics`
+
+### Identity & lifecycle
+- **Customer onboarding & identity** — `saga-pattern`, `approval`, `polling`, `updatable-timer`, `delayed-callback`, `early-return`, `fast-slow-retries`, `non-retryable-errors`
+- **Entity lifecycle management** — `entity-workflow`, `continue-as-new`, `updatable-timer`, `signal-with-start`, `request-response-via-updates`, `delayed-callback`
+
+### Comms & fintech
+- **Communications & marketing** — `child-workflows`, `parallel-execution`, `updatable-timer`, `downstream-rate-limiting`, `non-retryable-errors`, `delayed-callback`, `delayed-retry`, `sliding-window`, `batch-iterator`
+- **Financial services & lending** — `saga-pattern`, `approval`, `entity-workflow`, `fixed-wall-time-retries`, `retry-metrics`, `pick-first`, `priority-task-queues`, `non-retryable-errors`
+
+### Platform & ops
+- **Control plane operations** — `entity-workflow`, `signal-with-start`, `worker-specific-taskqueue`, `downstream-rate-limiting`, `fairness`, `priority-task-queues`, `resumable-activity`
+- **Inventory & logistics** — `entity-workflow`, `saga-pattern`, `polling`, `updatable-timer`, `delayed-callback`, `event-accumulator`, `fast-slow-retries`
+- **Customer service & support** — `entity-workflow`, `approval`, `updatable-timer`, `signal-with-start`, `request-response-via-updates`, `event-accumulator`, `delayed-callback`
+
+---
+
 ## Full catalog by domain
 
 Descriptions are terse pointers, not the full page. Fetch the slug for detail.
@@ -166,6 +214,7 @@ Descriptions are terse pointers, not the full page. Fetch the slug for detail.
 ### Workflow messaging
 - **Signal with Start** — `signal-with-start` — start-if-absent, else deliver the signal to the running workflow.
 - **Request-Response via Updates** — `request-response-via-updates` — synchronous, validated request/response that mutates state and returns a result.
+- **Event Accumulator** — `event-accumulator` — durably collect signals from many senders, dedupe by a stable key, and process the batch after a sliding inactivity timeout, no external coordination needed. (Page resolves but isn't in the canonical index `.md` yet — verify with a direct fetch.)
 
 ### Entity & lifecycle
 - **Entity Workflow** — `entity-workflow` — model a long-lived business entity as one persistent workflow.
@@ -224,6 +273,7 @@ Real solutions usually stack patterns. Common compositions:
 - **Eager Workflow Start** pairs with **Local Activities** for end-to-end low latency.
 - **Fairness**, **Priority Task Queues**, and **Downstream Rate Limiting** are the QoS trio — often discussed together for multi-tenant / tiered workloads.
 - **Approval** and **Delayed Callback** both rely on signals + durable waits and often appear in the same human/external-driven workflow.
+- **Event Accumulator** builds on signals like **Approval** and **Delayed Callback**, and pairs with **Continue-As-New** to keep a long-lived accumulator's history bounded.
 
 When a solution stacks patterns, fetch each page rather than improvising the seams.
 
@@ -239,9 +289,22 @@ These get conflated; call out the distinction when it's the crux of a question.
 
 ---
 
+## Cross-cutting techniques (not catalog patterns)
+
+Some things the use-case map leans on are *techniques*, not named catalog patterns —
+don't route to them as if they had a canonical pattern page.
+
+- **Idempotency** — designing activities and message handlers so retries and duplicate
+  events cause no double effects (e.g. no duplicate charges). It underpins **Saga**,
+  payments, and any at-least-once delivery path, but it's a discipline applied *within*
+  patterns, not a pattern itself — there is no `idempotency` design-patterns page. For
+  SDK-level idempotency guidance, use the `temporal-developer` skill.
+
+---
+
 ## Boundaries with other tools
 
-- **`temporal-developer` skill** — the deep SDK/build skill. Its `references/core/patterns.md` covers *conceptual primitives* (signals, queries, saga concept). **This** skill is the *composable design-pattern catalog* (34 named solution shapes). When actually coding: use this skill to choose the pattern, `temporal-developer` for language setup, determinism, gotchas, and testing. Note `temporal-developer` also has `priority-fairness.md` — use it for SDK specifics once Fairness/Priority is the chosen pattern.
+- **`temporal-developer` skill** — the deep SDK/build skill. Its `references/core/patterns.md` covers *conceptual primitives* (signals, queries, saga concept). **This** skill is the *composable design-pattern catalog* (35 named solution shapes). When actually coding: use this skill to choose the pattern, `temporal-developer` for language setup, determinism, gotchas, and testing. Note `temporal-developer` also has `priority-fairness.md` — use it for SDK specifics once Fairness/Priority is the chosen pattern.
 - **Temporal Docs (Kapa) MCP** — semantic search over doc prose. Good for open-ended "what do the docs say about X." Poor at reliably surfacing the *structured* catalog. Prefer this skill's index for pattern selection; use Kapa for free-text doc lookup afterward.
 
 ## Guardrails
