@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Validate SKILL.md frontmatter
+        run: make lint
+
+      - name: Build the .skill package
+        run: make build
+
+      - name: Confirm package matches SKILL.md
+        run: |
+          unzip -p dist/temporal-patterns.skill temporal-patterns/SKILL.md > packaged.md
+          diff SKILL.md packaged.md
+          echo "Package content matches SKILL.md"
+
+      - name: Upload built skill artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: temporal-patterns-skill
+          path: dist/temporal-patterns.skill
+
+  links:
+    name: Check doc links (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Check every catalog slug resolves
+        run: make check-links

@@ -1,0 +1,31 @@
+name: Skill misfired
+description: The skill triggered when it shouldn't have, or failed to trigger when it should.
+labels: ["misfire"]
+body:
+  - type: dropdown
+    id: direction
+    attributes:
+      label: Which way?
+      options:
+        - Triggered when it shouldn't have
+        - Did not trigger when it should have
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: The prompt you gave Claude
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected vs. what happened
+    validations:
+      required: true
+  - type: input
+    id: surface
+    attributes:
+      label: Where
+      placeholder: e.g. Claude Code, claude.ai web, desktop app

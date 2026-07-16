@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish .skill
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Validate SKILL.md frontmatter
+        run: make lint
+
+      - name: Build the .skill package
+        run: make build
+
+      - name: Publish release with the .skill attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/temporal-patterns.skill
+          generate_release_notes: true

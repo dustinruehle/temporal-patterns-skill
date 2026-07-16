@@ -1,0 +1,32 @@
+name: Routing rule wrong / pattern missing
+description: A problem routes to the wrong pattern, or a pattern is missing from the catalog.
+labels: ["catalog"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What's off?
+      options:
+        - A symptom routes to the wrong pattern
+        - A pattern is missing from the catalog
+        - A slug / canonical link is wrong
+        - A description is inaccurate
+    validations:
+      required: true
+  - type: input
+    id: pattern
+    attributes:
+      label: Pattern(s) or slug(s) involved
+      placeholder: e.g. saga-pattern, batch-iterator
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+      description: The correct routing, the pattern that should exist, or the right slug/description.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source / evidence
+      description: Link to the relevant docs.temporal.io page if you have it.

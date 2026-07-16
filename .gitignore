@@ -1,0 +1,11 @@
+# Build output — the .skill package is a build artifact, published via Releases
+dist/
+*.skill
+
+# Python cache from validation scripts
+__pycache__/
+*.pyc
+
+# OS / editor cruft
+.DS_Store
+*.swp
