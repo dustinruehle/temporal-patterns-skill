@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Verify every pattern slug in SKILL.md resolves at docs.temporal.io.
+"""Verify pattern slugs in SKILL.md are valid and canonical.
 
-Slugs are extracted from two structured places in SKILL.md:
-  - the routing-map table rows, which end in `| `slug` |`
-  - the catalog-by-domain bullets, of the form `... — `slug` — ...`
+Two checks:
 
-Each slug is checked against https://docs.temporal.io/design-patterns/{slug}.md.
-Prints a per-slug report and exits non-zero if any fail to resolve.
+1. Online: every slug in the *catalog by domain* section resolves at
+   https://docs.temporal.io/design-patterns/{slug}.md (200).
+2. Offline: every slug *referenced* elsewhere (the routing-map table and the
+   use-case -> pattern-stack section) is a member of the catalog slug-set. This
+   catches typos / renames in those surfaces without extra HTTP, and without the
+   false positives a whole-file scan would hit (e.g. `idempotency`, which is a
+   technique not a pattern, or `temporal-developer`, a sibling skill).
 
-This depends on the live docs site, so CI runs it as a non-blocking job.
+The catalog is the source of truth for what a valid slug is; the online check
+confirms the catalog itself is real; the offline check confirms references agree.
+
+Depends on the live docs site, so CI runs it as a non-blocking job.
 
 Usage: python3 scripts/check_links.py [SKILL.md]
 """
@@ -18,16 +24,20 @@ import urllib.error
 import urllib.request
 
 URL = "https://docs.temporal.io/design-patterns/{}.md"
-# Routing table: a cell that is just a backticked slug, at end of a table row.
-ROUTING_RE = re.compile(r"\|\s*`([a-z0-9][a-z0-9-]*)`\s*\|")
-# Catalog bullet: em-dash, backticked slug, em-dash.
-CATALOG_RE = re.compile(r"—\s*`([a-z0-9][a-z0-9-]*)`\s*—")
+SLUG = r"[a-z0-9][a-z0-9-]*"
+# Catalog bullet: "... — `slug` — ..." (em-dash on both sides). Source of truth.
+CATALOG_RE = re.compile(r"—\s*`(" + SLUG + r")`\s*—")
+# Routing table: a cell that is just a backticked slug, at end of a row.
+ROUTING_RE = re.compile(r"\|\s*`(" + SLUG + r")`\s*\|")
+# Any backticked slug (used to scan the use-case section).
+INLINE_RE = re.compile(r"`(" + SLUG + r")`")
 
 
-def extract_slugs(text):
-    slugs = set(ROUTING_RE.findall(text))
-    slugs.update(CATALOG_RE.findall(text))
-    return sorted(slugs)
+def section(text, heading):
+    """Return the body of a '## heading' section, up to the next '## '."""
+    m = re.search(r"^##\s+" + re.escape(heading) + r"\s*$(.*?)(?=^##\s)",
+                  text, re.MULTILINE | re.DOTALL)
+    return m.group(1) if m else ""
 
 
 def resolves(slug):
@@ -46,13 +56,26 @@ def resolves(slug):
 
 def main(path):
     text = open(path, encoding="utf-8").read()
-    slugs = extract_slugs(text)
-    if not slugs:
-        sys.exit("check_links: found no slugs — did the SKILL.md format change?")
 
-    print(f"Checking {len(slugs)} pattern slugs against {URL.format('<slug>')}\n")
+    catalog = set(CATALOG_RE.findall(section(text, "Full catalog by domain")))
+    if not catalog:
+        sys.exit("check_links: found no catalog slugs — did the SKILL.md format change?")
+
+    # 1. Offline: referenced slugs must exist in the catalog.
+    referenced = set(ROUTING_RE.findall(section(text, "Problem → pattern routing map")))
+    referenced |= set(INLINE_RE.findall(section(text, "Use-case → pattern stack")))
+    orphans = sorted(referenced - catalog)
+    if orphans:
+        sys.exit(
+            "check_links: slug(s) referenced in routing/use-case but not in the "
+            f"catalog (typo or missing catalog entry?): {', '.join(orphans)}"
+        )
+    print(f"OK: all {len(referenced)} referenced slugs exist in the catalog.\n")
+
+    # 2. Online: every catalog slug resolves.
+    print(f"Checking {len(catalog)} catalog slugs against {URL.format('<slug>')}\n")
     failures = []
-    for slug in slugs:
+    for slug in sorted(catalog):
         ok, info = resolves(slug)
         print(f"  {'OK ' if ok else 'BAD'}  {slug}  ({info})")
         if not ok:
@@ -61,7 +84,7 @@ def main(path):
     print()
     if failures:
         sys.exit(f"{len(failures)} slug(s) did not resolve: {', '.join(failures)}")
-    print(f"All {len(slugs)} slugs resolve.")
+    print(f"All {len(catalog)} catalog slugs resolve.")
 
 
 if __name__ == "__main__":

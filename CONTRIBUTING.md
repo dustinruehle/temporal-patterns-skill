@@ -39,7 +39,7 @@ Rules of the road:
   reconcile against it.
 
 ### Bumping the catalog snapshot
-The catalog is a snapshot (34 patterns / 10 domains at 1.0.0). When the live index
+The catalog is a snapshot (35 patterns / 10 domains at 0.2.x). When the live index
 changes, re-fetch `https://docs.temporal.io/design-patterns.md`, reconcile, and note
 the new counts in `SKILL.md`'s snapshot line.
 

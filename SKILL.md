@@ -13,10 +13,13 @@ description: >-
   descriptions). Trigger even when the user never says "pattern" — e.g. "how do I
   do human approval in a workflow", "my history is getting too big", "undo
   earlier steps when a later one fails", "don't overwhelm the downstream API",
-  "one tenant is starving the others". Always reach for a catalog pattern instead
-  of hand-rolling a Workflow shape.
+  "one tenant is starving the others". Trigger just as much when the problem is
+  framed by use case or industry rather than symptom — e.g. "which patterns for a
+  payments system / an AI agent platform / order fulfillment / an ETL pipeline on
+  Temporal" — and route via the use-case map. Always reach for a catalog pattern
+  instead of hand-rolling a Workflow shape.
 metadata:
-  version: 0.2.0
+  version: 0.2.1
   source: https://docs.temporal.io/design-patterns.md
 ---
 
@@ -78,7 +81,8 @@ open, and keep any specifics conservative and clearly flagged as unverified.
 
 ### Mode 2 — Customer / prospect / teammate questions
 
-1. Map the described problem to a pattern (or a small set) via the routing map.
+1. Map the described problem to a pattern (or a small set) via the routing map — or,
+   if they frame it by use case/industry, via the **Use-case → pattern stack**.
 2. Lead with the pattern name, then a plain-language "what it does / when to use
    it," then the honest tradeoff or the adjacent pattern it's often confused with
    (see *Choosing between close patterns*).
@@ -92,7 +96,9 @@ open, and keep any specifics conservative and clearly flagged as unverified.
 1. Use the **exact** pattern names — they're product terminology; don't rename or
    pluralize creatively.
 2. The 10 domains are a ready-made deck/section structure (one domain per section,
-   patterns as bullets).
+   patterns as bullets). For an audience-facing angle, the **Use-case → pattern
+   stack** verticals map patterns to industries/use cases (e.g. a "Temporal for
+   payments" slide).
 3. Keep descriptions crisp; fetch a pattern's page when a slide needs a specific
    mechanism, guarantee, or diagram description. Don't invent numbers or claims —
    if a slide needs a stat, fetch it or flag it as needing verification.
@@ -167,7 +173,8 @@ conversations (Mode 2) and enablement decks (Mode 3). Slugs only; names and
 descriptions are in the catalog. Then fetch each pattern's page as usual.
 
 A stack is a *starting menu*, not a mandate — most use cases need only a subset. Pick
-what the specific problem calls for (see *Guardrails* on not over-engineering).
+what the specific problem calls for (see *Guardrails* on not over-engineering), and
+**fetch only the pattern pages you actually select, not the whole stack.**
 
 > Snapshot of Temporal's "Use Case → Pattern Mapping v2" (June 2026), reconciled to
 > canonical catalog slugs. Non-pattern techniques it references (e.g. idempotency)

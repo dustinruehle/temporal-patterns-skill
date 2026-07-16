@@ -12,26 +12,28 @@ Workflow shape from scratch.
 
 ## What it does
 
-Temporal publishes a catalog of ~34 proven Workflow design patterns (Saga,
+Temporal publishes a catalog of 35 proven Workflow design patterns (Saga,
 Continue-As-New, Signal-with-Start, Fan-Out, Fairness, Approval, Local Activities,
 and more), grouped into 10 problem domains. The catalog lives at
-`https://docs.temporal.io/design-patterns.md`, and every pattern has its own
-canonical page.
+[docs.temporal.io/design-patterns](https://docs.temporal.io/design-patterns), and
+every pattern has its own canonical page.
 
 This skill teaches Claude to:
 
-1. **Recognize** when a problem maps to a named pattern — even when you never say
-   the word "pattern" (e.g. "my history is getting too big" → Continue-As-New /
-   Batch Iterator; "undo earlier steps when a later one fails" → Saga; "one tenant
-   is starving the others" → Fairness).
+1. **Recognize** when a problem maps to a named pattern — from two angles: bottom-up
+   by *symptom* even when you never say "pattern" ("my history is getting too big" →
+   Continue-As-New / Batch Iterator; "undo earlier steps when a later one fails" →
+   Saga), and top-down by the *use case or industry* you're building ("payments" →
+   Saga + idempotency + fixed-wall-time retries; "AI agent platform" → Entity
+   Workflow + Continue-As-New + rate limiting).
 2. **Fetch the canonical page** for that pattern before writing code or stating
    specifics, so implementation detail is always current and source-backed.
 3. **Behave correctly in three modes** — writing/reviewing Temporal code, answering
    customer or teammate questions, and building decks or enablement content.
 
-The full pattern menu and a problem-to-pattern routing table are baked into the
-skill so Claude always has the map. The *details* are pulled live from the docs on
-demand.
+The pattern menu, a problem-to-pattern routing table, and a use-case-to-pattern-stack
+map are baked into the skill so Claude always has the map. The *details* are pulled
+live from the docs on demand.
 
 ## Why you want it
 
@@ -75,8 +77,8 @@ demand.
 
 > Installing in **Claude Code** or distributing **org-wide** may follow a different
 > path (admin console / skills directory). For the current authoritative steps, see
-> Anthropic's skills documentation at `https://support.claude.com` and
-> `https://docs.claude.com`.
+> Anthropic's skills documentation at [support.claude.com](https://support.claude.com)
+> and [docs.claude.com](https://docs.claude.com).
 
 ## Use it
 
@@ -97,6 +99,13 @@ the current SDK guidance.
 Claude will name the Saga Pattern, explain compensations and the tradeoffs, and can
 pull the canonical page for specifics you can cite.
 
+**Starting from a use case**
+> "We're building order fulfillment on Temporal — which patterns do we need?"
+
+Claude will pull the use-case stack (Entity Workflow, Saga, Signal-with-Start,
+Updatable Timer, Delayed Callback, Early Return, Event Accumulator), then narrow to
+what your specific problem actually calls for.
+
 **Decks / enablement**
 > "Give me a slide outline of Temporal's design patterns for an exec briefing."
 
@@ -108,6 +117,8 @@ structure.
 - You don't need to say "pattern." Describe the *problem* ("don't overwhelm the
   downstream API," "wait for human approval," "race two calls and take the first")
   and it'll route to the right one.
+- Or start from your *use case* — "we're building payments / an AI agent platform /
+  ETL on Temporal" routes to the whole pattern stack for that domain, then narrows.
 - For customer-facing artifacts, ask Claude to fetch and cite the canonical page so
   the detail is verified rather than recalled.
 - If Claude ever invents a pattern that isn't in the catalog, tell it to check the
