@@ -19,7 +19,7 @@ description: >-
   Temporal" — and route via the use-case map. Always reach for a catalog pattern
   instead of hand-rolling a Workflow shape.
 metadata:
-  version: 0.2.1
+  version: 0.2.2
   source: https://docs.temporal.io/design-patterns.md
 ---
 

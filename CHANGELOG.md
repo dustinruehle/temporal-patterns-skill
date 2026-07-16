@@ -7,6 +7,12 @@ matches `metadata.version` in `SKILL.md`.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-16
+
+### Added
+- README "Use cases covered" subsection listing the 6 buckets and 15 verticals of the
+  use-case→pattern-stack map, so readers can see coverage without opening `SKILL.md`.
+
 ## [0.2.1] - 2026-07-16
 
 ### Changed
@@ -48,7 +54,8 @@ Initial pre-release. Interfaces and catalog may change before a `1.0.0` GA.
 - Deterministic canonical-URL construction for every pattern
   (`https://docs.temporal.io/design-patterns/{slug}.md`).
 
-[Unreleased]: https://github.com/dustinruehle/temporal-patterns-skill/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/dustinruehle/temporal-patterns-skill/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/dustinruehle/temporal-patterns-skill/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/dustinruehle/temporal-patterns-skill/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/dustinruehle/temporal-patterns-skill/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dustinruehle/temporal-patterns-skill/releases/tag/v0.1.0

@@ -35,6 +35,18 @@ The pattern menu, a problem-to-pattern routing table, and a use-case-to-pattern-
 map are baked into the skill so Claude always has the map. The *details* are pulled
 live from the docs on demand.
 
+### Use cases covered
+
+The use-case map groups 15 verticals into 6 buckets. Name yours and Claude routes to
+the pattern stack it usually needs (then narrows to what your problem actually calls for):
+
+- **AI workloads** — AI agents · agent platforms · processing pipelines · model training
+- **Commerce & payments** — order management & fulfillment · payment processing & settlement
+- **Data & infrastructure** — data pipelines & ETL · infrastructure automation & CI/CD
+- **Identity & lifecycle** — customer onboarding & identity · entity lifecycle management
+- **Comms & fintech** — communications & marketing · financial services & lending
+- **Platform & ops** — control plane operations · inventory & logistics · customer service & support
+
 ## Why you want it
 
 - **No hand-rolled Workflow shapes.** Left alone, Claude will happily improvise a
