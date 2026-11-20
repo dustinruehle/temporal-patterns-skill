@@ -1,0 +1,122 @@
+[
+  {
+    "query": "our subscription billing workflow (Go SDK) has been running since spring for some accounts and the web UI takes forever to load them. one of them is at ~48k events and the worker logged a warning about history size. what's the right way to restructure it so it can just keep running indefinitely?",
+    "should_trigger": true
+  },
+  {
+    "query": "loan origination flow in TypeScript: credit check -> place funds hold -> create core banking account -> send docs. if account creation fails after the hold is placed we need to release the hold and void the credit pull, and that cleanup has to be reliable even if the worker dies mid-way. how should I structure this in temporal?",
+    "should_trigger": true
+  },
+  {
+    "query": "what would a claims processing system on Temporal look like? insurance carrier, FNOL intake, adjuster assignment, fraud scoring, payouts, and some claims stay open for months waiting on documents. I need a rough sketch for a whiteboard session tomorrow",
+    "should_trigger": true
+  },
+  {
+    "query": "prospect runs a multi-tenant SaaS on temporal. one big tenant kicks off 200k document jobs and every small tenant's jobs sit in the queue behind them for hours. they asked on the call if temporal has an answer for this. what do I tell them and what should they build?",
+    "should_trigger": true
+  },
+  {
+    "query": "building an enablement deck for new SEs called 'designing temporal workflows'. I want one slide per problem area (long-running, failure handling, concurrency, human interaction, etc) with the standard names and a one-liner each. can you draft the slide outline?",
+    "should_trigger": true
+  },
+  {
+    "query": "can you review ~/src/payments-svc/workflows/refund.py? it loops `while not settled: await workflow.sleep(5); settled = await workflow.execute_activity(check_bank_status, ...)` for up to 2 days waiting for the bank to settle. feels wrong but I'm not sure what the better shape is",
+    "should_trigger": true
+  },
+  {
+    "query": "customer emailed: 'we need a manager to approve any expense over $5k before it gets paid, and if nobody approves within 72 hours it escalates to their director.' draft me a reply explaining how they'd build that with temporal, they're on the Java SDK",
+    "should_trigger": true
+  },
+  {
+    "query": "events for the same customer account keep arriving from kafka and I need them processed strictly in order by one long-lived thing per account, never two at once. python sdk. how do I model that in temporal?",
+    "should_trigger": true
+  },
+  {
+    "query": "prepping an architecture review with a prospect building an AI agent platform on temporal: LLM calls, tool calls, human-in-the-loop checkpoints, conversations that last days. which temporal building blocks should the design use and why?",
+    "should_trigger": true
+  },
+  {
+    "query": "our shipping carrier's API allows 50 req/s and when we start 10k shipment workflows at once we get flooded with 429s and the retries make it worse. how should we structure the workflows so we stop overwhelming them?",
+    "should_trigger": true
+  },
+  {
+    "query": "need to process a 5M row CSV from S3 where each row calls an enrichment API, on temporal. what's the right way to fan this out without blowing up a single workflow's event history?",
+    "should_trigger": true
+  },
+  {
+    "query": "review this TS workflow from a customer: `await Promise.all(items.map(i => executeChild(processItem, { args: [i] })))` with ~30k items in one parent. they say it's slow and they're hitting limits. what would you change?",
+    "should_trigger": true
+  },
+  {
+    "query": "question from a call today: they want to start a workflow for an order if it doesn't exist yet, or send it the new event if it does, without two API pods racing each other. what's the temporal way to do that? want a short answer I can paste in the follow-up email",
+    "should_trigger": true
+  },
+  {
+    "query": "order fulfillment on temporal: payment, inventory reservation, warehouse pick, shipping label, customer notifications. what's the reference design and where do teams usually get it wrong? bringing this to a discovery follow-up next week",
+    "should_trigger": true
+  },
+  {
+    "query": "our temporal workflow calls a fast in-memory pricing lookup ~400 times per execution and each call is a regular activity, so end-to-end latency is terrible. is there a lighter-weight way to do these calls?",
+    "should_trigger": true
+  },
+  {
+    "query": "writing an internal FAQ for SAs: when do you recommend child workflows vs activities vs continue-as-new vs a separate long-lived workflow per entity? give me a decision table I can paste into the wiki",
+    "should_trigger": true
+  },
+  {
+    "query": "my github actions workflow in .github/workflows/deploy.yml is flaky: the integration test job fails randomly maybe 1 in 5 runs. how do I add a retry for that job, and make the prod deploy step wait for approval from the release team before it runs?",
+    "should_trigger": false
+  },
+  {
+    "query": "designing an Airflow DAG for nightly ETL: extract from 40 postgres shards, transform, load into snowflake. should I use dynamic task mapping for the fan-out or one task per shard? also how do I keep one bad shard from failing the whole DAG run",
+    "should_trigger": false
+  },
+  {
+    "query": "in AWS Step Functions how do I implement a saga with compensating steps for a travel booking flow (hotel, flight, car)? standard state machine, each step is a Lambda. if the car rental fails I need to cancel the flight and hotel",
+    "should_trigger": false
+  },
+  {
+    "query": "n8n workflow: webhook trigger -> HTTP request node to our CRM -> Slack message. the HTTP node times out now and then. how do I add retry with backoff and an error branch that emails me when it finally gives up?",
+    "should_trigger": false
+  },
+  {
+    "query": "temporal workers in k8s show schedule_to_start latency around 8s on the payments task queue and worker_task_slots_available sits near zero. 4 pods, Java SDK, default tuner. do I add pods or change slot config, and what numbers?",
+    "should_trigger": false
+  },
+  {
+    "query": "set up a new Temporal Cloud namespace with tcld for our staging env in us-west-2: mTLS with our CA cert, 14 day retention, and give the CI service account write access. what are the exact commands?",
+    "should_trigger": false
+  },
+  {
+    "query": "how do Temporal Cloud account-level roles and namespace permissions interact? I want devs to have read-only on prod namespaces and only the platform team able to terminate workflows. we do SSO through Okta",
+    "should_trigger": false
+  },
+  {
+    "query": "customer asked how Temporal Cloud bills: actions vs storage, and whether signals and heartbeats count as actions. they want a rough monthly estimate for 2M workflows a month with 10 activities each",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the temporal CLI command to list all running workflows of type OrderWorkflow started in the last hour in namespace prod-orders, and then batch terminate them with a reason?",
+    "should_trigger": false
+  },
+  {
+    "query": "pip install temporalio fails in my python:3.12-alpine docker image while building the wheel, something about a rust toolchain / maturin error. what base image or build steps should I use?",
+    "should_trigger": false
+  },
+  {
+    "query": "implementing a saga across our Spring Boot microservices with Kafka choreography, no orchestrator. how do I handle compensation when the inventory service fails after the payment service already charged the card? and how do I avoid double compensation on redelivery?",
+    "should_trigger": false
+  },
+  {
+    "query": "writing a python requests wrapper with tenacity: exponential backoff with jitter. should I retry on 502/503 only or also read timeouts? and how do I make the POST retries safe with an idempotency key header?",
+    "should_trigger": false
+  },
+  {
+    "query": "worker started failing right after deploy: `panic: [TMPRL1100] nondeterministic workflow definition: history event is ActivityTaskScheduled, replay command is TimerStarted` in OrderWorkflow (Go SDK). I added a workflow.Sleep before the charge activity. how do I fix the running executions?",
+    "should_trigger": false
+  },
+  {
+    "query": "self-hosting temporal server: which persistence store to pick at roughly 5k workflow starts/sec, and how many history shards should we configure up front given we can't change it later?",
+    "should_trigger": false
+  }
+]

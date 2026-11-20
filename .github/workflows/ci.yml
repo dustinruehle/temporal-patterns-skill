@@ -22,14 +22,8 @@ jobs:
       - name: Validate SKILL.md frontmatter
         run: make lint
 
-      - name: Build the .skill package
-        run: make build
-
-      - name: Confirm package matches SKILL.md
-        run: |
-          unzip -p dist/temporal-patterns.skill temporal-patterns/SKILL.md > packaged.md
-          diff SKILL.md packaged.md
-          echo "Package content matches SKILL.md"
+      - name: Build and confirm the package matches the sources
+        run: make verify
 
       - name: Upload built skill artifact
         uses: actions/upload-artifact@v4
@@ -48,5 +42,5 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Check every catalog slug resolves
+      - name: Check the catalog against the live docs
         run: make check-links

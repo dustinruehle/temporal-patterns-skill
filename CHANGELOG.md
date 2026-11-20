@@ -7,6 +7,65 @@ matches `metadata.version` in `SKILL.md`.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+### Added
+- **Features table**: problems whose answer is a platform feature rather than a
+  pattern (Schedules, Standalone Activities, Nexus, Worker Versioning, Search
+  Attributes, Workflow ID policies, Update-with-Start, Workflow Streams, External
+  Storage, Activity Pause), with release stages as of 2026-11-20 and docs links.
+- **Anti-patterns**: a table in `SKILL.md` and detail in
+  `references/anti-patterns.md`, each with the limit it breaks and what to do
+  instead. Includes a "when Temporal isn't the fit" note.
+- **Limits that change which pattern you pick**: per-execution limits from the
+  docs, linked.
+- Choosing notes: Signal-with-Start, Update-with-Start or Early Return;
+  rate limiting, Fairness, Priority or separate Task Queues; Standalone Activity
+  or Workflow; Resumable Activity or Activity Pause; Delayed Start or Schedules;
+  Fan-Out, Sliding Window or Batch Iterator; Updatable Timer or Event Accumulator.
+- Composition note for Approval with an expiry.
+- `references/guides.md`: docs guides mapped to the patterns they extend,
+  including the distributed lock guide.
+- Booking and reservations vertical, and per-vertical features and traps, in
+  `references/use-cases.md`.
+- `evals/`: routing (40 prompts), triggering (30) and mode (3) eval sets, with
+  0.2.2 results.
+- `make setup`.
+
+### Changed
+- `SKILL.md` restructure: the routing map and the catalog are merged into one
+  table per domain, and the use-case stacks move to `references/use-cases.md`.
+  The package now includes `references/`.
+- Description rewritten to fit the 1,024-character limit (it was 1,263, and
+  claude.ai cut it off). It names code review explicitly, puts Temporal terms in
+  its examples, says "prefer" instead of "always", and lists what the skill is
+  not for.
+- Mode 2 leads with the customer's problem, names only the patterns their facts
+  call for, and keeps to the requested length. Mode 1 loads `temporal-developer`
+  for new code. Mode 3 fetches the live index once per deck.
+- Use-case map updated to the v3 mapping (2026-07-08): Priority and Fairness added
+  to AI processing pipelines.
+- `check_links.py` checks the catalog against the live index both ways and by
+  name, checks reference slugs and stated counts, and checks every other docs URL.
+  It reads tables instead of punctuation.
+- `validate_skill.py` enforces the description limit and checks that named
+  references exist.
+- Prose follows Google developer documentation style: no arrows or em dashes.
+
+### Fixed
+- "Priority Task Queues" renamed to **Priority** to match the docs (the slug
+  `priority-task-queues` is unchanged).
+- Fairness distributes Task dispatch, not Worker capacity; it is best effort and
+  not a rate cap.
+- Downstream Rate Limiting is a server-enforced start-rate cap on the Task Queue,
+  not a throughput-limited Worker pool; it doesn't limit concurrency.
+- Batch Iterator no longer promises exactly-once; Activities run at least once.
+- Eager Workflow Start is marked Public Preview and doesn't respect Worker
+  Versioning.
+- Removed the stale note that Event Accumulator is missing from the docs index.
+- Early Return is described as built on Update-with-Start.
+- Updatable Timer routes "debounce" phrasing.
+
 ## [0.2.2] - 2026-07-16
 
 ### Added

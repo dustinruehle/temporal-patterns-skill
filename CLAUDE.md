@@ -1,95 +1,72 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
 ## What this repository is
 
-This is **not application code** — it is the source and distribution setup for a
-single Claude skill named `temporal-patterns`. The skill teaches Claude to map a
-described problem to one of Temporal's 35 official Workflow design patterns and to
-fetch the pattern's canonical doc page before writing code or asserting specifics.
+This isn't application code. It's the source and packaging for one Claude skill,
+`temporal-patterns`. The skill maps a described problem to one of Temporal's
+official Workflow design patterns, a platform feature or an anti-pattern, and
+fetches the pattern's canonical docs page before it writes code or states
+specifics.
 
 ## Files and their roles
 
-- `SKILL.md` — the skill itself, and the **single source of truth**. YAML
-  frontmatter (`name`, `description`, `metadata`) followed by the skill body: the
-  operating rules, the problem→pattern routing map, the use-case→pattern-stack map,
-  the full catalog (35 patterns across 10 domains), composition notes, cross-cutting
-  techniques, and guardrails. **All content edits happen here.**
-- `README.md` — human-facing docs: what the skill does, why, and how to install it
-  from GitHub Releases.
-- `CONTRIBUTING.md` — how humans propose fixes/additions and how maintainers release.
-- `CHANGELOG.md` — Keep a Changelog format; version tracks `metadata.version` in
-  `SKILL.md`.
-- `Makefile` — `make build` packages the skill; `make lint` / `make check-links`
-  validate it.
-- `scripts/validate_skill.py` — frontmatter validation (used by `make lint` and CI).
-- `scripts/check_links.py` — checks every catalog slug resolves at docs.temporal.io.
-- `.github/workflows/ci.yml` — PR/push checks: lint, build, packaged-content diff,
-  and a non-blocking link-check job.
-- `.github/workflows/release.yml` — on a `v*` tag: build and attach the `.skill` to
-  the GitHub Release.
+- `SKILL.md`: the skill. Frontmatter (`name`, `description`, `metadata`), then
+  the rules, the three modes, the pattern catalog (one table per domain), the
+  features table, choosing and composition notes, limits, anti-patterns,
+  cross-cutting techniques, boundaries and guardrails.
+- `references/use-cases.md`, `references/anti-patterns.md`, `references/guides.md`:
+  loaded on demand when `SKILL.md` points to them.
+- `evals/`: routing, triggering and mode eval sets, with results per version.
+- `scripts/validate_skill.py`: frontmatter, description length (1,024 max, no
+  angle brackets), and that every `references/` file named in `SKILL.md` exists.
+- `scripts/check_links.py`: catalog slugs resolve; the catalog matches the live
+  index both ways and by name; reference slugs exist in the catalog; stated
+  counts match; every other docs URL resolves.
+- `Makefile`: `setup`, `build`, `verify`, `lint`, `check-links`.
+- `.github/workflows/ci.yml` and `release.yml`: CI checks; release on a `v*` tag.
 
-## The `.skill` package is a build artifact — do not commit it
+## The package is a build artifact
 
-`temporal-patterns.skill` is a ZIP whose single entry is `temporal-patterns/SKILL.md`
-(a copy of the root `SKILL.md`). It is **generated, not committed** — `dist/` and
-`*.skill` are gitignored. It is published two ways:
-
-- CI uploads it as a workflow artifact on every PR.
-- Tagged releases attach it to the GitHub Releases page (how end users download it).
-
-This keeps `SKILL.md` the only source of truth and avoids committing a binary that
-churns on every edit (ZIP embeds timestamps, so byte-diffs are meaningless).
+`temporal-patterns.skill` is a ZIP of `temporal-patterns/SKILL.md` and
+`temporal-patterns/references/*.md`. It isn't committed (`dist/` and `*.skill` are
+gitignored). CI uploads it on every PR; tagged releases attach it.
 
 ## Editing workflow
 
-1. Edit `SKILL.md`.
-2. Validate and build locally:
-   ```sh
-   make lint          # frontmatter is well-formed
-   make build         # produces dist/temporal-patterns.skill
-   make verify        # build + confirm packaged SKILL.md matches the source
-   make check-links   # every catalog slug resolves at docs.temporal.io
-   ```
-3. Add a `## [Unreleased]` entry in `CHANGELOG.md`.
-4. Open a PR. CI re-runs lint + build and diffs the packaged `SKILL.md` against the
-   source, so packaging can never drift silently.
-
-## Releasing
-
-Releases are cut by tag; the workflow builds and attaches the `.skill`.
-
-1. Bump `metadata.version` in `SKILL.md`.
-2. Promote `## [Unreleased]` items under a new version heading in `CHANGELOG.md`.
-3. `git tag vX.Y.Z && git push origin vX.Y.Z`.
-
-Keep the tag, `metadata.version`, and the CHANGELOG heading in agreement.
+1. Edit `SKILL.md` or `references/`.
+2. Run `make lint`, `make verify` and `make check-links`.
+3. If routing text, the description or the catalog changed, re-run the evals and
+   record the results in `evals/README.md`.
+4. Add an `## [Unreleased]` entry to `CHANGELOG.md`.
 
 ## Conventions that keep the skill correct
 
-These come from the skill's own design and must be preserved when editing:
-
-- **The catalog is an index, not the implementation.** The skill deliberately does
-  NOT embed pattern implementation code. Each pattern is referenced by `slug`, and
-  the canonical page is fetched on demand at
-  `https://docs.temporal.io/design-patterns/{slug}.md` (drop `.md` for the shareable
-  web page). The full index is `https://docs.temporal.io/design-patterns.md`.
-- **A pattern's `slug` appears in up to three places** — the routing-map table, the
-  catalog-by-domain section, and any composition / choosing-between notes. Keep them
-  consistent when adding, renaming, or removing a pattern. `make check-links`
-  verifies the slugs against the live docs.
-- **Pattern names are product terminology** — use them exactly; don't rename or
-  pluralize.
-- Two boundary tools are referenced intentionally and should stay distinct: the
-  `temporal-developer` skill (SDK setup, determinism, testing) and the Temporal Docs
-  (Kapa) MCP (free-text doc search). This skill only picks the *pattern shape*.
+- **The catalog is an index, not the implementation.** Don't embed pattern code.
+  Each pattern is referenced by slug; its page is
+  `https://docs.temporal.io/design-patterns/{slug}.md`.
+- **Pattern names are product terms.** Use the name from the live index exactly.
+  The Priority pattern keeps the old slug `priority-task-queues`.
+- **Stages are dated.** The features table and catalog notes carry release stages
+  as of a date. Quote them as the docs state them.
+- **The parsers depend on the table layout.** `check_links.py` reads catalog rows
+  shaped `| Name | \`slug\` | Use it when |` under `## Pattern catalog`, and slug
+  lines in `references/` that start with `- **Patterns:**`, `- **Also
+  consider:**` or `- **Related:**`. Keep those shapes or update the script in the
+  same change.
+- **The description must stay at or under 1,024 characters.** Longer ones are
+  cut off on claude.ai.
+- **Boundaries:** the `temporal-developer` skill owns SDK setup, determinism and
+  testing; the Temporal Docs search (Kapa) is for free-text lookup after a pattern
+  is chosen.
+- **Prose style:** Google developer documentation style. Plain and active; no em
+  or en dashes and no arrows.
+- **Public repo:** no customer names, internal call details or pricing.
 
 ## Keeping the catalog current
 
-The embedded catalog is a snapshot (35 patterns, 10 domains). The live index at
-`https://docs.temporal.io/design-patterns.md` is the real source of truth. Before
-concluding a pattern is missing, or when updating the catalog, re-fetch that index
-and reconcile against `SKILL.md`. Note: **Event Accumulator** (`event-accumulator`)
-has a live pattern page but is not currently listed in that index — the page itself
-is authoritative for it.
+The live index at `https://docs.temporal.io/design-patterns.md` is the source of
+truth, and the pages are maintained in `temporalio/documentation` under
+`docs/design-patterns/`. `make check-links` reports any pattern the index has and
+the catalog lacks, and any name that differs.

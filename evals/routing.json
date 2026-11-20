@@ -1,0 +1,555 @@
+{
+  "name": "routing",
+  "version": "0.3.0",
+  "built": "2026-11-20",
+  "rubric": "Score each prompt 0 to 2 on three axes: right pattern (or correctly says no pattern fits), right caveat, right link. A caveat that is only available by fetching the page earns at most 1.",
+  "items": [
+    {
+      "id": "D01",
+      "category": "direct",
+      "prompt": "When a later step fails I need to undo the earlier ones: release the hold, refund the card. How do I do that in a workflow?",
+      "expected": {
+        "patterns": [
+          "saga-pattern"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Register each compensation as soon as its step is attempted, run them in reverse order, and make compensations idempotent and retryable (they can also fail). Use Non-Retryable Errors for business failures that should trigger compensation instead of retrying."
+    },
+    {
+      "id": "D02",
+      "category": "direct",
+      "prompt": "Our long-running workflow is getting history size warnings after a few months of events. What do we do?",
+      "expected": {
+        "patterns": [
+          "continue-as-new"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Use the SDK's continue-as-new-suggested check rather than a hand-picked count; let Signal and Update handlers finish before continuing, and carry forward only the state you need. Warning at 10,240 Events / 10 MB, hard stop at 51,200 / 50 MB."
+    },
+    {
+      "id": "D03",
+      "category": "direct",
+      "prompt": "Events for an order come off our message bus. The workflow for that order may not exist yet. Start it if it is missing, otherwise just deliver the event.",
+      "expected": {
+        "patterns": [
+          "signal-with-start"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Use a deterministic business key as the Workflow ID. Temporal has no native Kafka/SQS consumer: the existing consumer calls Signal-with-Start. Keep the per-execution Signal rate low (about 5 per second sustained)."
+    },
+    {
+      "id": "D04",
+      "category": "direct",
+      "prompt": "The caller needs a synchronous answer: validate the request, change the workflow's state and return a result, and reject bad input before it is recorded.",
+      "expected": {
+        "patterns": [
+          "request-response-via-updates"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Use an Update validator to reject before anything is written to history. Limits: 10 in-flight Updates and 2,000 total Updates per execution; Updates are slower than Signals."
+    },
+    {
+      "id": "D05",
+      "category": "direct",
+      "prompt": "A reviewer has to approve before we continue. If nobody approves within 48 hours, escalate to their manager.",
+      "expected": {
+        "patterns": [
+          "approval"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Wait on the approval with a durable timer (await condition with timeout); the timer survives restarts and deploys. Use an Update instead of a Signal if the approver's UI needs confirmation or validation. If the deadline can move, add Updatable Timer."
+    },
+    {
+      "id": "D06",
+      "category": "direct",
+      "prompt": "The partner API allows 50 calls per second in total across all of our workers. How do we stay under it?",
+      "expected": {
+        "patterns": [
+          "downstream-rate-limiting"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Put the throttled Activity on its own Task Queue with a server-enforced dispatch cap: Worker option maxTaskQueueActivitiesPerSecond, or 'temporal task-queue config set --queue-rps-limit', which overrides the Worker option and decouples it from deploys. Retries count against the cap; set it a little under the partner limit because of per-partition bursts."
+    },
+    {
+      "id": "D07",
+      "category": "direct",
+      "prompt": "One big tenant floods the shared queue and everyone else's work sits behind it.",
+      "expected": {
+        "patterns": [
+          "fairness"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Fairness (GA) with a fairness key per tenant and optional weights; optional per-key rate limit. It is not hard isolation; use separate Task Queues or Namespaces for that. Priority is a different tool (strict ordering, not sharing)."
+    },
+    {
+      "id": "D08",
+      "category": "direct",
+      "prompt": "We have to process about 2 million records from a file without blowing up the workflow history.",
+      "expected": {
+        "patterns": [
+          "batch-iterator"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Page through the data and Continue-As-New between pages; combine with Sliding Window or Fan-Out with Child Workflows for parallelism. Keep pending Activities or Children per execution under 2,000 (aim for 500 or fewer)."
+    },
+    {
+      "id": "D09",
+      "category": "direct",
+      "prompt": "Ask three quote providers at once, use whichever answers first, and stop the other two.",
+      "expected": {
+        "patterns": [
+          "pick-first"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Cancel the losers with a cancellation scope; a running Activity only sees the cancel on its next Heartbeat, so the provider calls need heartbeats (and idempotent side effects)."
+    },
+    {
+      "id": "D10",
+      "category": "direct",
+      "prompt": "The payment API returns 429 with a Retry-After header. We want to wait exactly that long before the next try.",
+      "expected": {
+        "patterns": [
+          "delayed-retry"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Throw an ApplicationFailure with nextRetryDelay set from the header; it overrides only that interval, and the Retry Policy's maximum attempts and Schedule-To-Close still apply."
+    },
+    {
+      "id": "D11",
+      "category": "direct",
+      "prompt": "Validation failures keep retrying forever even though they will never succeed.",
+      "expected": {
+        "patterns": [
+          "non-retryable-errors"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Mark the error type non-retryable (in the Retry Policy or on the thrown ApplicationFailure) so the Workflow fails fast and can compensate or report."
+    },
+    {
+      "id": "D12",
+      "category": "direct",
+      "prompt": "Partner outages can last hours. We want quick retries at first, then slow retries for as long as it takes, and on-call should know when it is stuck.",
+      "expected": {
+        "patterns": [
+          "fast-slow-retries",
+          "retry-metrics"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Fast phase then slow unlimited phase so the Workflow outlasts the outage; emit a metric past an attempt threshold for alerting. Operators can also Pause the Activity during a known outage (Activity Operations, Public Preview)."
+    },
+    {
+      "id": "D13",
+      "category": "direct",
+      "prompt": "A file has to be processed on the same host that downloaded it, then cleaned up there.",
+      "expected": {
+        "patterns": [
+          "worker-specific-taskqueue"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Return a host-specific Task Queue name from the first Activity and route the rest there; if that host dies, the Workflow must retry from the download step on another host."
+    },
+    {
+      "id": "D14",
+      "category": "direct",
+      "prompt": "Several services send pieces of data for the same case over a few minutes. Collect them and process them together once things go quiet.",
+      "expected": {
+        "patterns": [
+          "event-accumulator"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Deduplicate by event ID, reset an inactivity timer on each Signal, start with Signal-with-Start; per-execution Signal rate about 5 per second sustained and 10,000 per run (Continue-As-New if long-lived)."
+    },
+    {
+      "id": "U01",
+      "category": "use-case",
+      "prompt": "Which patterns fit a travel booking platform? We hold the fare, charge the card, issue the ticket; the booking can change for weeks after; and the API must confirm in a couple of seconds.",
+      "expected": {
+        "patterns": [
+          "saga-pattern",
+          "entity-workflow",
+          "early-return"
+        ],
+        "non_pattern": "durable timer for the ticketing deadline; Workflow ID as booking key",
+        "must_not": []
+      },
+      "key_caveat": "Early Return uses Update-with-Start; a durable timer races ticketing against the hold deadline; Workflow ID as the booking key with ID conflict policy Use Existing for duplicate submits; Continue-As-New for long-lived bookings."
+    },
+    {
+      "id": "U02",
+      "category": "use-case",
+      "prompt": "Money transfer service: withdraw, deposit, never double-move money, and transfers over a threshold need a manual approval.",
+      "expected": {
+        "patterns": [
+          "saga-pattern",
+          "approval"
+        ],
+        "non_pattern": "idempotency keys; Workflow ID as transfer reference",
+        "must_not": []
+      },
+      "key_caveat": "Activities are at-least-once: pass one idempotency key (deterministic, made in the Workflow or by the caller) to withdraw and deposit; Workflow ID as the transfer reference blocks duplicate starts; compensation on deposit failure."
+    },
+    {
+      "id": "U03",
+      "category": "use-case",
+      "prompt": "We are building an AI agent platform: a long LLM loop calling tools, human approval before risky tools, and the UI should stream tokens as they come.",
+      "expected": {
+        "patterns": [
+          "approval",
+          "continue-as-new"
+        ],
+        "non_pattern": "Workflow as agent loop with LLM and tool calls as Activities; Workflow Streams for token streaming; External Storage for large context; SDK AI integrations",
+        "must_not": []
+      },
+      "key_caveat": "LLM and tool calls must be Activities (non-deterministic). Token streaming uses Workflow Streams (experimental), not Queries or a Signal per token. Continue-As-New for long conversations; keep conversation payloads small or offload them."
+    },
+    {
+      "id": "U04",
+      "category": "use-case",
+      "prompt": "Nightly ETL over tens of millions of rows. We need retries, and we can't hammer the source database.",
+      "expected": {
+        "patterns": [
+          "batch-iterator",
+          "sliding-window",
+          "downstream-rate-limiting"
+        ],
+        "non_pattern": "Schedules to trigger it nightly",
+        "must_not": []
+      },
+      "key_caveat": "Schedules (a feature, not a catalog pattern) start the run; Batch Iterator plus Sliding Window bound concurrency; a Task Queue rate limit protects the database. Pass row IDs or page cursors, not row data (2 MB payload limit)."
+    },
+    {
+      "id": "U05",
+      "category": "use-case",
+      "prompt": "Multi-tenant SaaS that syncs each tenant's CRM. Every tenant has its own API credentials and rate limit, and one tenant must not slow down the rest.",
+      "expected": {
+        "patterns": [
+          "fairness",
+          "downstream-rate-limiting"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "One shared Activity Task Queue per CRM with a fairness key per tenant credential and a per-fairness-key rate limit (scaled by weight). Partitions reduce per-key accuracy at low limits; use separate queues for hard isolation."
+    },
+    {
+      "id": "U06",
+      "category": "use-case",
+      "prompt": "Device lifecycle management: each device is provisioned, gets config pushes and health checks, and is retired years later.",
+      "expected": {
+        "patterns": [
+          "entity-workflow",
+          "continue-as-new"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "One Workflow per device with Signals or Updates for commands; Continue-As-New regularly; keep per-device message rate low; plan Worker Versioning for code changes across long-lived runs."
+    },
+    {
+      "id": "U07",
+      "category": "use-case",
+      "prompt": "Order fulfillment where the carrier calls our webhook days later with delivery status.",
+      "expected": {
+        "patterns": [
+          "delayed-callback"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Inbound webhook becomes a Signal (or Signal-with-Start) keyed by order ID, or the Activity completes asynchronously via task token; set a timer for the carrier never calling back."
+    },
+    {
+      "id": "U08",
+      "category": "use-case",
+      "prompt": "Checkout API has a tight latency budget. The first response must come back fast while the rest of the order processing continues.",
+      "expected": {
+        "patterns": [
+          "early-return",
+          "early-return-local-activities",
+          "eager-workflow-start"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Update-with-Start returns the first result; Local Activities in phase 1 skip server round trips (at-least-once, short and idempotent only); Eager Workflow Start needs the starter and Worker co-located. Measure before adding all three."
+    },
+    {
+      "id": "T01",
+      "category": "trap",
+      "prompt": "We need the charge to happen exactly once. Can Temporal guarantee exactly-once execution if we set retries to one attempt?",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "No pattern gives exactly-once side effects. Activities are at-least-once; use idempotency keys (Workflow Run ID + Activity ID, or a business key) enforced by the payment service, plus Workflow ID dedupe for starts.",
+        "must_not": [
+          "fixed-count-retries as the answer to exactly-once",
+          "saga-pattern as the answer to exactly-once"
+        ]
+      },
+      "key_caveat": "maxAttempts=1 gives at-most-once and still does not prevent a duplicate if a Worker crashes after the side effect but before reporting. Workflow code is effectively-once; Activities are not."
+    },
+    {
+      "id": "T02",
+      "category": "trap",
+      "prompt": "We handle about 50k events per second; each one is a single outbound call that needs retries and a record. Should each event be its own workflow?",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Standalone Activities (GA, Temporal's job queue): one durable, retryable, addressable Activity per event without a Workflow. Use a Workflow only when there are multiple dependent steps, waits or state.",
+        "must_not": [
+          "entity-workflow",
+          "fanout-child-workflows"
+        ]
+      },
+      "key_caveat": "Activity ID as the dedupe key with a conflict policy; Activity code still idempotent. At this rate, plan Namespace capacity with the account team. Do not funnel the events into one Workflow."
+    },
+    {
+      "id": "T03",
+      "category": "trap",
+      "prompt": "To protect a downstream API we built a semaphore workflow: every workflow signals it to ask for a slot and waits for a reply signal. It falls behind under load. How do we scale it?",
+      "expected": {
+        "patterns": [
+          "downstream-rate-limiting",
+          "fairness"
+        ],
+        "non_pattern": "Server-side Task Queue rate limit (queue-rps-limit) or per-fairness-key limits replace the semaphore Workflow",
+        "must_not": [
+          "entity-workflow as the fix",
+          "a sharded mutex Workflow as the primary answer"
+        ]
+      },
+      "key_caveat": "A single coordinating Workflow is capped by per-execution Signal throughput (about 5 per second sustained). Use the server-enforced Task Queue rate limit; for concurrency (not rate) caps, size Worker slots."
+    },
+    {
+      "id": "T04",
+      "category": "trap",
+      "prompt": "The approval request should expire after three days, but an approver can extend the deadline while it is still open.",
+      "expected": {
+        "patterns": [
+          "approval",
+          "updatable-timer"
+        ],
+        "non_pattern": null,
+        "must_not": []
+      },
+      "key_caveat": "Plain Approval with a fixed timeout misses the moving deadline: the extend action is a Signal or Update that resets the timer. Use an Update validator to reject approvals or extensions after expiry."
+    },
+    {
+      "id": "T05",
+      "category": "trap",
+      "prompt": "Our chat assistant workflow lives for weeks with thousands of turns, and every Activity call passes the full conversation history.",
+      "expected": {
+        "patterns": [
+          "continue-as-new"
+        ],
+        "non_pattern": "External Storage (claim check, Public Preview) or store the transcript outside and pass a reference",
+        "must_not": [
+          "entity-workflow alone with no history or payload caveat"
+        ]
+      },
+      "key_caveat": "Two limits: history length (Continue-As-New, carry a summary) and payload size (2 MB per payload; full history per call bloats Event History fast). If each turn is an Update, the 2,000 total Updates per run also forces Continue-As-New."
+    },
+    {
+      "id": "T06",
+      "category": "trap",
+      "prompt": "Our parent workflow starts 10,000 child workflows at once, one per account. It works in test but fails in production.",
+      "expected": {
+        "patterns": [
+          "sliding-window"
+        ],
+        "non_pattern": null,
+        "must_not": [
+          "fanout-child-workflows without a concurrency bound"
+        ]
+      },
+      "key_caveat": "2,000 pending Child Workflows per execution is a hard limit (aim for 500 or fewer); Sliding Window caps in-flight children and Continue-As-New keeps the parent's history bounded. Batch Iterator or MapReduce Tree for larger sets."
+    },
+    {
+      "id": "T07",
+      "category": "trap",
+      "prompt": "Users double-click submit. The second request should attach to the booking that is already running instead of starting another one.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Workflow ID as the business key with Workflow ID Conflict Policy USE_EXISTING (default FAIL returns already-started); Update-with-Start if the caller needs a result",
+        "must_not": [
+          "signal-with-start as the primary answer when no message is being sent"
+        ]
+      },
+      "key_caveat": "Conflict policy covers a running Workflow; Reuse Policy covers a closed one. Starts to the same ID too fast hit ID-reuse rate limits."
+    },
+    {
+      "id": "T08",
+      "category": "trap",
+      "prompt": "Local Activities are faster, so can we make all our Activities local, including the 30-second calls to the core banking system?",
+      "expected": {
+        "patterns": [
+          "local-activities"
+        ],
+        "non_pattern": "Keep long or remote calls as regular Activities",
+        "must_not": [
+          "local-activities as a blanket yes"
+        ]
+      },
+      "key_caveat": "Local Activities fit short (a few seconds), idempotent calls on a latency path. They run inside the Workflow Task, re-run if the Worker crashes before the task completes, get no Task Queue rate limiting or Activity Operations, and long ones need Workflow Task heartbeating."
+    },
+    {
+      "id": "N01",
+      "category": "no-pattern",
+      "prompt": "Run the reconciliation every night at 2 a.m., and skip a run if yesterday's is still going.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Schedules with an overlap policy (Skip is the default)",
+        "must_not": [
+          "delayed-start",
+          "a Workflow that loops with a 24-hour sleep"
+        ]
+      },
+      "key_caveat": "Delayed Start is one-time; recurring work is a Schedule (pause, backfill, overlap policy built in)."
+    },
+    {
+      "id": "N02",
+      "category": "no-pattern",
+      "prompt": "Another team in a different namespace needs to call our payment workflow with a typed contract, without sharing our code or getting write access to our namespace.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Nexus (Nexus Services and Operations through a Nexus Endpoint)",
+        "must_not": [
+          "child-workflows across namespaces",
+          "signal-with-start across namespaces"
+        ]
+      },
+      "key_caveat": "Release stage varies by SDK (GA in Go, Java, Python; Public Preview in TypeScript and .NET as of the 2026 announcements); 30 in-flight Nexus Operations per caller Workflow."
+    },
+    {
+      "id": "N03",
+      "category": "no-pattern",
+      "prompt": "Every time we deploy new workflow code, running workflows fail with non-determinism errors. How do we ship changes safely?",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Worker Versioning (GA) with pinned or auto-upgrade behavior; patching APIs for in-place changes; replay tests in CI",
+        "must_not": [
+          "continue-as-new as the fix"
+        ]
+      },
+      "key_caveat": "Pinned Workflows finish on the version that started them; long-lived ones move with Continue-As-New or auto-upgrade plus patches. Run replay tests against production histories before deploy."
+    },
+    {
+      "id": "N04",
+      "category": "no-pattern",
+      "prompt": "Support needs to find every booking stuck at the payment step for a given customer.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Custom Search Attributes (for example customer ID and step) plus List Filter queries in the UI or CLI",
+        "must_not": [
+          "entity-workflow",
+          "a Query fan-out to every Workflow"
+        ]
+      },
+      "key_caveat": "Register attributes on the Namespace and upsert them as the step changes; Visibility is eventually consistent and rate limited, so it is not a transactional store."
+    },
+    {
+      "id": "N05",
+      "category": "no-pattern",
+      "prompt": "We need in-memory processing of market ticks at about a million events per second with sub-millisecond latency. Is Temporal the right tool?",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Temporal is not the right fit for the hot path; use a stream processor and use Temporal for the durable processes around it (onboarding, settlement, remediation)",
+        "must_not": [
+          "any catalog pattern as the hot-path answer"
+        ]
+      },
+      "key_caveat": "Every Workflow step is a durable write; per-execution throughput is a few events per second. Say so instead of forcing a pattern."
+    },
+    {
+      "id": "A01",
+      "category": "anti-pattern",
+      "prompt": "We keep one long-lived entity workflow per device as the source of truth. Other services query it many times a second and do compare-and-swap through Updates. Is that a good design?",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Don't: a Workflow is not a high-rate datastore or per-record state store. Keep record state in a database; use Workflows for bounded processes that act on it (provision, replace, retire).",
+        "must_not": [
+          "entity-workflow endorsed as-is",
+          "request-response-via-updates endorsed as-is"
+        ]
+      },
+      "key_caveat": "10 in-flight Updates per execution (excess rejected with resource exhausted), Signals about 5 per second, Queries need a Worker and replay, Continue-As-New across hundreds of millions of runs and every Worker version is costly and handler-drain mistakes are easy."
+    },
+    {
+      "id": "A02",
+      "category": "anti-pattern",
+      "prompt": "We want one global counter workflow that every service signals to increment usage.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Don't: single-execution hot spot. Use a database counter, or shard across many Workflows and aggregate on a schedule.",
+        "must_not": [
+          "entity-workflow endorsed as-is",
+          "event-accumulator for unbounded global traffic"
+        ]
+      },
+      "key_caveat": "Per-execution Signal guidance is about 5 per second sustained; above that you get BUSY_WORKFLOW and lock contention, and 10,000 Signals per run."
+    },
+    {
+      "id": "A03",
+      "category": "anti-pattern",
+      "prompt": "Can we call the LLM and our REST APIs directly from workflow code? Wrapping everything in Activities feels like boilerplate.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Don't: Workflow code must be deterministic. Network calls, LLM calls, randomness and clocks go in Activities (or SDK-provided deterministic APIs).",
+        "must_not": [
+          "local-activities as a way to skip Activities"
+        ]
+      },
+      "key_caveat": "Direct I/O in Workflow code breaks replay. SDK AI integrations already wrap model calls as Activities; Activity Dependency Injection keeps clients out of Workflow code."
+    },
+    {
+      "id": "A04",
+      "category": "anti-pattern",
+      "prompt": "We pass the whole 20 MB document as the workflow input and hand it from Activity to Activity.",
+      "expected": {
+        "patterns": [],
+        "non_pattern": "Don't: 2 MB per payload limit. Store the blob externally and pass a reference (claim check), or use External Storage (Public Preview).",
+        "must_not": []
+      },
+      "key_caveat": "Even under 2 MB, large payloads accumulate in Event History and slow Workflow Tasks; the limit is fixed at 2 MB on Temporal Cloud."
+    },
+    {
+      "id": "A05",
+      "category": "anti-pattern",
+      "prompt": "Our workflow polls a status API every second in a while loop with a one-second sleep, forever.",
+      "expected": {
+        "patterns": [
+          "polling"
+        ],
+        "non_pattern": "Don't poll at high frequency from Workflow code: each iteration adds Events.",
+        "must_not": []
+      },
+      "key_caveat": "Frequent polling belongs inside one heartbeating Activity; infrequent polling uses the Activity Retry Policy as the loop; any Workflow-level loop needs Continue-As-New. Prefer a callback or Signal if the system can push."
+    }
+  ]
+}
