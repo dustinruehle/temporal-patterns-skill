@@ -118,5 +118,9 @@
   {
     "query": "self-hosting temporal server: which persistence store to pick at roughly 5k workflow starts/sec, and how many history shards should we configure up front given we can't change it later?",
     "should_trigger": false
+  },
+  {
+    "query": "every time we deploy new workflow code our long-running order workflows fail with non-determinism errors. how should we ship workflow changes safely going forward on temporal?",
+    "should_trigger": true
   }
 ]
