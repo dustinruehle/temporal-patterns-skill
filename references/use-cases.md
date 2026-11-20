@@ -26,6 +26,7 @@ How to read each entry:
 - **Watch for:** the agent loop is a Workflow and each LLM or tool call is an Activity. Use Entity Workflow only for a long-lived agent per user with low message rates; Continue-As-New keeps long conversations bounded.
 
 ### AI agent platforms
+- **Use when:** you run agents for other teams or tenants (shared model APIs, tenant isolation). For the agent loop itself (LLM and tool calls, approvals, streaming), use "AI agents" above; most platform questions need both.
 - **Patterns:** `signal-with-start`, `worker-specific-taskqueue`, `activity-dependency-injection`, `downstream-rate-limiting`, `fairness`, `priority-task-queues`, `delayed-retry`
 - **Features:** Nexus (platform APIs called by other teams), Worker Versioning.
 - **Watch for:** a shared model API needs a rate cap (Downstream Rate Limiting) and per-tenant sharing (Fairness); they solve different problems.
@@ -54,7 +55,7 @@ How to read each entry:
 Added by this skill; not in the v3 mapping.
 - **Patterns:** `saga-pattern`, `early-return`, `updatable-timer`, `entity-workflow`, `non-retryable-errors`
 - **Features:** Update-with-Start (hold and confirm in one call).
-- **Watch for:** a hold that expires is an Updatable Timer; releasing held inventory on failure is a Saga compensation.
+- **Watch for:** a hold that expires is a durable timer; add Updatable Timer only if the deadline can move; releasing held inventory on failure is a Saga compensation.
 
 ## Data & infrastructure
 

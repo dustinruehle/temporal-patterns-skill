@@ -2,19 +2,20 @@
 name: temporal-patterns
 description: >-
   Catalog of Temporal's official Workflow design patterns (Saga, Continue-As-New,
-  Signal-with-Start, Entity Workflow, Fan-Out, Fairness, Approval and more) by
-  problem domain, with a problem-to-pattern map, a use-case map, related
-  features, anti-patterns and live links to each canonical page.
+  Entity Workflow, Fan-Out, Fairness, Approval and more) by
+  problem domain, with problem and use-case maps, related features,
+  anti-patterns and live links to each canonical page.
   Use it whenever you design, write or review Temporal Workflow or Activity code
   (a file, diff or snippet), answer a customer or teammate question about how to
   solve a problem in Temporal, or build Temporal slides or enablement. Trigger
   even when nobody says "pattern": "my Workflow history is too big", "undo
   earlier steps when a later one fails", "human approval in a Workflow", "don't
   overwhelm the downstream API", "one tenant's Workflows starve the others".
-  Trigger just as much for use-case framings: "payments, AI agents, order
+  Also trigger on use-case framings: "payments, AI agents, order
   fulfillment or ETL on Temporal". Not for other engines or queues (Airflow,
   Step Functions, GitHub Actions, BullMQ), Worker tuning, CLI or Cloud admin,
-  pricing, or debugging a non-determinism error.
+  pricing, or debugging one non-determinism error (do use it for safe Workflow
+  deploys).
 metadata:
   version: 0.3.0
   source: https://docs.temporal.io/design-patterns.md
@@ -58,9 +59,9 @@ and mark any specifics as unverified.
 
 1. Name the pattern or patterns from the catalog. Several often compose.
 2. Fetch each pattern page before you write Workflow or Activity code.
-3. For new code, load the `temporal-developer` skill before you write SDK code:
-   this skill picks the shape, that one gets determinism, SDK idioms and testing
-   right.
+3. For new code, or when a review rewrites code, load the `temporal-developer`
+   skill before you write SDK code. This skill picks the shape; that one gets
+   determinism, SDK idioms and testing right.
 4. For a review, fetch only the pages for patterns that fix a defect you found,
    and cite them next to each finding.
 5. If nothing in the catalog fits, check the features table and the anti-patterns
@@ -73,7 +74,9 @@ and mark any specifics as unverified.
    up.
 2. Name only the patterns the customer's stated facts call for. Don't add a step
    they didn't describe to justify a pattern; if one might apply later, ask about
-   it instead. Keep to the requested length; names and links count toward it.
+   it instead. This limits pattern names, not standard practice: still say when
+   independent calls can run in parallel. Link every pattern you name. Keep to
+   the requested length; names and links count toward it.
 3. If the question is framed by industry or use case, start from the use-case
    stacks in `references/use-cases.md`, then narrow.
 4. Check the features table: if a Workflow waits for days, mention Worker
@@ -91,6 +94,10 @@ and mark any specifics as unverified.
    verticals in `references/use-cases.md`.
 3. Fetch a pattern page when a slide needs a mechanism, a guarantee or a diagram.
    Don't invent numbers; fetch them or flag them for checking.
+4. Check the features table: when a slide uses a pattern that pairs with a
+   feature (Request-Response via Updates with Update-with-Start, Entity Workflow
+   with Worker Versioning), name the feature and label it a feature.
+5. Don't mention this skill or its lists in the deck.
 
 ### Example
 
@@ -115,7 +122,7 @@ Match the user's symptom to the "Use it when" column, even when they never say
 |---|---|---|
 | Child Workflows | `child-workflows` | A big Workflow should split into smaller units, each with its own ID, history and lifecycle. |
 | Parallel Execution | `parallel-execution` | Many Activities should run at once for throughput, with error handling and bounded parallelism. |
-| Pick First (Race) | `pick-first` | Several Activities race; use the first result and cancel the rest (hedging). |
+| Pick First (Race) | `pick-first` | Several Activities race; use the first result and cancel the rest (hedging). Racing Activities must heartbeat to see the cancel. |
 
 ### Workflow messaging
 
@@ -130,7 +137,7 @@ Match the user's symptom to the "Use it when" column, even when they never say
 | Pattern | slug | Use it when |
 |---|---|---|
 | Entity Workflow | `entity-workflow` | A long-lived business entity (account, device, order) gets one Workflow, and Signals and Updates drive each change. Low message rates only: see Anti-patterns. |
-| Continue-As-New | `continue-as-new` | History grows without bound in a long loop: finish the run and restart with fresh history. |
+| Continue-As-New | `continue-as-new` | History grows without bound in a long loop: finish the run and restart with fresh history. Use the SDK's suggested-Continue-As-New check, let Signal and Update handlers finish first, and carry forward only the state you need. |
 | Updatable Timer | `updatable-timer` | A deadline must be extended, shortened, cancelled or debounced by Signals or Updates. The page is titled "Updatable / Debounced Timer". |
 
 ### External interaction
@@ -140,14 +147,14 @@ Match the user's symptom to the "Use it when" column, even when they never say
 | Polling External Services | `polling` | You poll an external resource until it's ready: frequent, infrequent or periodic. |
 | Long-Running Activity | `long-running-activity` | A long Activity reports progress with heartbeats, resumes after failure and supports cancellation. |
 | Delayed Start | `delayed-start` | Create the Workflow now and start it after a one-time delay (grace period, schedule once). Recurring runs are Schedules, a feature. |
-| Delayed Callback (Webhooks) | `delayed-callback` | Webhooks must be durable: inbound calls arrive as Signals, outbound calls fire after a durable sleep, Activities complete later with a task token. |
+| Delayed Callback (Webhooks) | `delayed-callback` | Webhooks must be durable: inbound calls arrive as Signals, outbound calls fire after a durable sleep, Activities complete later with a task token. Race the wait against a timer in case the callback never arrives. |
 | Approval | `approval` | The Workflow waits for a human decision, delivered as a Signal with metadata. |
 
 ### Distributed transactions
 
 | Pattern | slug | Use it when |
 |---|---|---|
-| Saga Pattern | `saga-pattern` | Earlier steps must be undone when a later step fails; each step has a compensation. |
+| Saga Pattern | `saga-pattern` | Earlier steps must be undone when a later step fails. Register each compensation before its step runs, run them in reverse order, and make them idempotent. Business failures that should compensate are Non-Retryable Errors. |
 | Early Return | `early-return` | The caller needs a result right away while the Workflow keeps working. Built on Update-with-Start. |
 
 ### Error handling & retry
@@ -157,7 +164,7 @@ Match the user's symptom to the "Use it when" column, even when they never say
 | Fixed Count of Retries | `fixed-count-retries` | Each attempt costs money or a limited resource, so attempts are capped. |
 | Fixed Wall-Time Retries | `fixed-wall-time-retries` | Total retry time must fit an SLA, whatever the attempt count. |
 | Non-Retryable Errors | `non-retryable-errors` | Some errors never succeed (validation, missing record), so fail fast. |
-| Delayed Retry | `delayed-retry` | The error says how long to wait (for example Retry-After): set `nextRetryDelay` on the failure. |
+| Delayed Retry | `delayed-retry` | The error says how long to wait (for example Retry-After): set `nextRetryDelay` on the failure. Maximum attempts and timeouts in the Retry Policy still apply. |
 | Fast/Slow Retries | `fast-slow-retries` | Retry fast first, then slowly without limit, so the Workflow outlasts a long outage. |
 | Retry Alerting via Metrics | `retry-metrics` | On-call must see silent retries before an SLA breach: emit a metric past an attempt threshold. |
 | Resumable Activity | `resumable-activity` | After retries run out, park the Workflow, wait for a human fix by Signal, then resume where it stopped. |
@@ -175,7 +182,7 @@ Match the user's symptom to the "Use it when" column, even when they never say
 
 | Pattern | slug | Use it when |
 |---|---|---|
-| Downstream Rate Limiting | `downstream-rate-limiting` | Calls per second to a downstream service must be capped: route its Activities to a dedicated Task Queue with a server-enforced rate cap, adjustable at runtime. It limits starts per second, not how many run at once. |
+| Downstream Rate Limiting | `downstream-rate-limiting` | Calls per second to a downstream service must be capped: route its Activities to a dedicated Task Queue with a server-enforced rate cap, adjustable at runtime. Set it with the Worker option `maxTaskQueueActivitiesPerSecond`, or at runtime with `temporal task-queue config set --queue-rps-limit`. It limits starts per second, not how many run at once, and retries count against it. |
 | Priority | `priority-task-queues` | Urgent work must dispatch ahead of other work on one Task Queue. Priority keys run from 1 (highest) to 5 (default 3). It orders dispatch only: no preemption, no reserved capacity. GA. |
 | Fairness | `fairness` | One tenant's burst must not starve the others on a shared Task Queue: Task dispatch is shared across Fairness keys by weight. Best effort; not a rate cap or isolation; enabled per Namespace. GA. |
 
@@ -186,7 +193,7 @@ pattern name is "Priority".
 
 | Pattern | slug | Use it when |
 |---|---|---|
-| Local Activities | `local-activities` | A short, idempotent step on a latency-sensitive path runs in the Worker process, skipping server round-trips. |
+| Local Activities | `local-activities` | A short, idempotent step on a latency-sensitive path runs in the Worker process, skipping server round-trips. Only for steps of a few seconds at most: it re-runs if the Worker crashes before the Workflow Task completes, and it bypasses the Task Queue, so no server rate limit. |
 | Early Return + Local Activities | `early-return-local-activities` | The first response must be as fast as possible: Early Return with Phase 1 as Local Activities. |
 | Eager Workflow Start | `eager-workflow-start` | Start latency matters and the Worker shares a process with the starter: the first Workflow Task skips the Matching Service. Public Preview; it doesn't respect Worker Versioning; check SDK support on the page. |
 
@@ -205,17 +212,17 @@ you quote one.
 
 | If the user is trying to | Feature | Stage | Docs |
 |---|---|---|---|
-| Run something on a recurring schedule (cron, calendar) | Schedules | GA | `https://docs.temporal.io/schedule` |
+| Run something on a recurring schedule (cron, calendar), with an overlap policy (default Skip), pause and backfill | Schedules | GA | `https://docs.temporal.io/schedule` |
 | Run one durable, retried task or a job queue, with no orchestration | Standalone Activities | GA; operator commands Public Preview | `https://docs.temporal.io/standalone-activity` |
 | Call another team's service or another Namespace durably | Nexus | Varies by SDK; check the page | `https://docs.temporal.io/nexus` |
-| Ship new Workflow code without breaking running Workflows | Worker Versioning | GA | `https://docs.temporal.io/worker-versioning` |
+| Ship new Workflow code without breaking running Workflows (pinned or auto-upgrade; replay tests in CI) | Worker Versioning | GA | `https://docs.temporal.io/worker-versioning` |
 | Find Workflows by business fields (customer ID, status) | Search Attributes | GA | `https://docs.temporal.io/search-attribute` |
-| Stop duplicate starts for one business key | Workflow ID as the key, plus ID conflict and reuse policies | GA | `https://docs.temporal.io/workflow-execution/workflowid-runid` |
+| Stop duplicate starts for one business key | Workflow ID as the key. The conflict policy covers a running Workflow (Use Existing attaches to it; the default, Fail, returns an already-started error); the reuse policy covers a closed one | GA | `https://docs.temporal.io/workflow-execution/workflowid-runid` |
 | Start a Workflow if needed and get a result back in one call | Update-with-Start | Check the SDK page | `https://docs.temporal.io/sending-messages#update-with-start` |
 | Stream progress or tokens to a UI while a Workflow runs | Workflow Streams | Public Preview | `https://docs.temporal.io/workflow-streams` |
 | Pass payloads too large for Event History | External Storage | Public Preview | `https://docs.temporal.io/external-storage` |
 | Hold, resume or reset a failing Activity without a code change | Activity Pause, Unpause and Reset | Public Preview | `https://docs.temporal.io/activity-operations` |
-| Serialize access to a shared resource (lock, semaphore, mutex) | Docs guide, not a catalog pattern | Guide | `https://docs.temporal.io/guides/lock-shared-resources` |
+| Serialize access to one named shared resource (lock, semaphore, mutex). To cap calls to a downstream API, use Downstream Rate Limiting instead | Docs guide, not a catalog pattern | Guide | `https://docs.temporal.io/guides/lock-shared-resources` |
 
 Patterns and features often pair: Entity Workflow, Approval and any multi-day
 wait need Worker Versioning; Request-Response via Updates and Early Return use
@@ -304,7 +311,7 @@ warning signs and limits for each are in `references/anti-patterns.md`.
 | Don't | Do instead |
 |---|---|
 | Use a Workflow as a high-rate datastore or per-record state store | Keep the state in a database; use Workflows for the bounded processes that act on it |
-| Route all traffic through one hot Workflow (global counter, router, semaphore) | Shard by key, or use a database; for locks, use one Workflow ID per resource |
+| Route all traffic through one hot Workflow (global counter, router, semaphore) | Shard by key, or keep the counter in a database. To protect a downstream service, use a Task Queue rate limit or cap Worker slots on a dedicated Task Queue. For a lock on one named resource, use one Workflow ID per resource |
 | Start a Workflow per event for one retried call at high volume | Use a Standalone Activity |
 | Fan out thousands of Child Workflows from one parent | Use Sliding Window, Batch Iterator or MapReduce Tree |
 | Put I/O, randomness or clock reads in Workflow code | Use Activities; see `temporal-developer` for determinism |
