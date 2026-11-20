@@ -15,3 +15,10 @@ generic: no company or customer names.
 | Version | Routing (overall) | Trap | No-pattern | Anti-pattern | Triggering (P / R) | Modes (with vs without) |
 |---|---|---|---|---|---|---|
 | 0.2.2 | 61% | 46% | 20% | 37% | 1.00 / 1.00 | Code 9 vs 8.5; Q&A 7 vs 7.5; Slides 8.5 vs 4 |
+| 0.3.0 | 96% | 96% | 87% | 97% | 1.00 / 1.00 (31 queries) | Code 9 vs 8; Q&A 8 vs 7; Slides 9 vs 4 |
+
+Notes for 0.3.0: routing was scored by a fresh reviewer against the same key. The
+trigger set adds one should-trigger prompt (safe Workflow deploys); six
+near-miss probes that reuse the description's example phrases in non-Temporal
+settings fired 0 of 18 runs. In the mode runs, the baseline was re-graded with
+the same key as the new run.

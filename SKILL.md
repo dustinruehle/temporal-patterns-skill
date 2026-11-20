@@ -184,7 +184,7 @@ Match the user's symptom to the "Use it when" column, even when they never say
 |---|---|---|
 | Downstream Rate Limiting | `downstream-rate-limiting` | Calls per second to a downstream service must be capped: route its Activities to a dedicated Task Queue with a server-enforced rate cap, adjustable at runtime. Set it with the Worker option `maxTaskQueueActivitiesPerSecond`, or at runtime with `temporal task-queue config set --queue-rps-limit`. It limits starts per second, not how many run at once, and retries count against it. |
 | Priority | `priority-task-queues` | Urgent work must dispatch ahead of other work on one Task Queue. Priority keys run from 1 (highest) to 5 (default 3). It orders dispatch only: no preemption, no reserved capacity. GA. |
-| Fairness | `fairness` | One tenant's burst must not starve the others on a shared Task Queue: Task dispatch is shared across Fairness keys by weight. Best effort; not a rate cap or isolation; enabled per Namespace. GA. |
+| Fairness | `fairness` | One tenant's burst must not starve the others on a shared Task Queue: Task dispatch is shared across Fairness keys by weight. Best effort and not isolation; for a per-tenant cap, add a Fairness key rate limit. Enabled per Namespace. GA. |
 
 The Priority slug keeps the pattern's old name, `priority-task-queues`. The
 pattern name is "Priority".
@@ -215,7 +215,7 @@ you quote one.
 | Run something on a recurring schedule (cron, calendar), with an overlap policy (default Skip), pause and backfill | Schedules | GA | `https://docs.temporal.io/schedule` |
 | Run one durable, retried task or a job queue, with no orchestration | Standalone Activities | GA; operator commands Public Preview | `https://docs.temporal.io/standalone-activity` |
 | Call another team's service or another Namespace durably | Nexus | Varies by SDK; check the page | `https://docs.temporal.io/nexus` |
-| Ship new Workflow code without breaking running Workflows (pinned or auto-upgrade; replay tests in CI) | Worker Versioning | GA | `https://docs.temporal.io/worker-versioning` |
+| Ship new Workflow code without breaking running Workflows (pinned or auto-upgrade; patching for in-place changes; replay tests against real histories in CI) | Worker Versioning | GA | `https://docs.temporal.io/worker-versioning` |
 | Find Workflows by business fields (customer ID, status) | Search Attributes | GA | `https://docs.temporal.io/search-attribute` |
 | Stop duplicate starts for one business key | Workflow ID as the key. The conflict policy covers a running Workflow (Use Existing attaches to it; the default, Fail, returns an already-started error); the reuse policy covers a closed one | GA | `https://docs.temporal.io/workflow-execution/workflowid-runid` |
 | Start a Workflow if needed and get a result back in one call | Update-with-Start | Check the SDK page | `https://docs.temporal.io/sending-messages#update-with-start` |

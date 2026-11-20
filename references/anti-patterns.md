@@ -30,8 +30,10 @@ before you quote a number.
 - **Why it breaks:** one execution is one lock. Every request queues behind the
   others and hits the same per-execution limits as above.
 - **Do instead:** shard by key (one Workflow per tenant or resource), or keep the
-  counter in a database. For locks, use one Workflow ID per resource; see the
-  guide at `https://docs.temporal.io/guides/lock-shared-resources`.
+  counter in a database. If the semaphore exists to protect a downstream service,
+  use a Task Queue rate limit (Downstream Rate Limiting) or cap Worker slots on a
+  dedicated Task Queue. For a lock on one named resource, use one Workflow ID per
+  resource; see `https://docs.temporal.io/guides/lock-shared-resources`.
 
 ## A Workflow per event for one retried call
 

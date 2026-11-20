@@ -24,6 +24,11 @@ matches `metadata.version` in `SKILL.md`.
   or Workflow; Resumable Activity or Activity Pause; Delayed Start or Schedules;
   Fan-Out, Sliding Window or Batch Iterator; Updatable Timer or Event Accumulator.
 - Composition note for Approval with an expiry.
+- Caveats in catalog and feature rows that routing evals showed were missing:
+  Saga compensation order, rate-limit settings and retries, ID conflict policy
+  names, Local Activities limits, Schedules overlap policy, safe Continue-As-New,
+  Pick First heartbeats, Delayed Retry bounds, callback timeouts, Worker
+  Versioning practices.
 - `references/guides.md`: docs guides mapped to the patterns they extend,
   including the distributed lock guide.
 - Booking and reservations vertical, and per-vertical features and traps, in
@@ -56,7 +61,7 @@ matches `metadata.version` in `SKILL.md`.
 - "Priority Task Queues" renamed to **Priority** to match the docs (the slug
   `priority-task-queues` is unchanged).
 - Fairness distributes Task dispatch, not Worker capacity; it is best effort and
-  not a rate cap.
+  doesn't cap throughput by itself (a Fairness key rate limit does).
 - Downstream Rate Limiting is a server-enforced start-rate cap on the Task Queue,
   not a throughput-limited Worker pool; it doesn't limit concurrency.
 - Batch Iterator no longer promises exactly-once; Activities run at least once.
